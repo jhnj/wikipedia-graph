@@ -10,8 +10,6 @@ import fs2._
 import scala.xml.pull._
 
 object Parser {
-  implicit val syncIO: Sync[IO] = Sync[IO]
-
   def stax[F[_]](e: XMLEventReader)(implicit F: Sync[F]): Stream[F, XMLEvent] =
     Stream.unfoldEval(e) { e: XMLEventReader =>
       F.delay(e.hasNext)
@@ -25,7 +23,7 @@ object Parser {
       Source.fromFile(file)
     })(source => {
       val e = new XMLEventReader(source)
-      stax(e)
+      stax(e)(Sync[IO])
     }, source => IO {
       source.close()
     })
@@ -106,14 +104,17 @@ object Parser {
   }
 
   def main(args: Array[String]): Unit = {
-    val stream: IO[Vector[PageOrRedirect]] = staxFromFile("/path/to/file").through(xmlHandler).take(10).runLog
+    val stream: IO[Vector[PageOrRedirect]] = for {
+      config <- Config.config
+      s <- staxFromFile(config.wikipediaDump).through(xmlHandler).take(10).runLog
+    } yield s
 
     (for {
       _ <- IO { println("starting") }
-      vec <- stream
-      _ <- IO { println(vec.take(5)) }
+      s <- stream
+      _ <- IO { println(s) }
       _ <- IO { println("done") }
-    } yield vec).unsafeRunSync()
+    } yield s).unsafeRunSync()
   }
 }
 
