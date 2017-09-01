@@ -1,5 +1,7 @@
 package parser
 
+import java.nio.file.Paths
+
 import io.Source
 import cats._
 import implicits._
@@ -78,7 +80,7 @@ object Parser {
                   if (state.isRedirect)
                     Pull.output1(Right(Redirect(state.title.get, state.redirect.get))) >> go(tail, state.copy(inText = false))
                   else
-                    Pull.output1(Left(Page(state.title.get))) >> go(tail, state)
+                    Pull.output1(Left(Page(state.title.get, state.links))) >> go(tail, state)
 
                 case "title" =>
                   go(tail, state.copy(inTitle = false))
@@ -90,7 +92,7 @@ object Parser {
               if (state.inTitle) {
                 go(tail, state.copy(title = Some(value)))
               } else if (state.inText) {
-                go(tail, state.copy(links = List("link")))
+                go(tail, state.copy(links = LinkParser.getLinks(value)))
               } else {
                 go(tail, state)
               }
@@ -104,9 +106,23 @@ object Parser {
   }
 
   def main(args: Array[String]): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    def getLinks: (String, String) => Stream[IO, PageOrRedirect] =
+      (path: String, linksPath: String) =>
+        staxFromFile(path).through(xmlHandler).take(100).observe(writeLink(linksPath))
+
+    def writeLink(path: String): Sink[IO,PageOrRedirect] =
+      in => in
+        .filter(_.isLeft)
+        .map { case Left(page) => page.title }
+        .intersperse("\n")
+        .through(text.utf8Encode)
+        .to(fs2.io.file.writeAll(Paths.get(path)))
+
     val stream: IO[Vector[PageOrRedirect]] = for {
       config <- Config.config
-      s <- staxFromFile(config.wikipediaDump).through(xmlHandler).take(10).runLog
+      s <- getLinks(config.wikipediaDump, config.links).runLog
     } yield s
 
     (for {

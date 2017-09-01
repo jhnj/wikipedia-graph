@@ -67,3 +67,4 @@ fabric.properties
 *.log
 
 application.conf
+notes.md
