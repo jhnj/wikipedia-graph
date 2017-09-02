@@ -77,10 +77,12 @@ object Parser {
             case EvElemEnd(_, label) =>
               label match {
                 case "text" =>
-                  if (state.isRedirect)
+                  if (state.isRedirect && state.title.isDefined && state.redirect.isDefined)
                     Pull.output1(Right(Redirect(state.title.get, state.redirect.get))) >> go(tail, state.copy(inText = false))
-                  else
+                  else if (state.title.isDefined)
                     Pull.output1(Left(Page(state.title.get, state.links))) >> go(tail, state)
+                  else
+                    go(tail, state)
 
                 case "title" =>
                   go(tail, state.copy(inTitle = false))
@@ -99,6 +101,8 @@ object Parser {
 
             case _ => go(tail, state)
           }
+
+        case _ => Pull.done
       }
     }
 
