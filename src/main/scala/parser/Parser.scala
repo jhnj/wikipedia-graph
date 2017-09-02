@@ -31,10 +31,10 @@ object Parser {
     })
 
   case class Page(title: String, links: Set[String] = Set[String]()) {
-    override def toString: String = s"$title|${links.mkString("|")}"
+    override def toString: String = s"${title.toLowerCase}|${links.map(_.toLowerCase).mkString("|")}"
   }
   case class Redirect(from: String, to: String) {
-    override def toString: String = s"$from|$to"
+    override def toString: String = s"${from.toLowerCase}${to.toLowerCase}"
   }
 
   type PageOrRedirect = Either[Page, Redirect]
@@ -115,6 +115,7 @@ object Parser {
     (path: String) =>
       staxFromFile(path)
         .through(xmlHandler)
+          .take(200)
 
   def writeToFile(path: String): Sink[IO, String] =
     in => in
@@ -122,11 +123,23 @@ object Parser {
       .through(text.utf8Encode)
       .to(fs2.io.file.writeAll(Paths.get(path)))
 
-  def writeLink(path: String): Sink[IO,PageOrRedirect] =
+  def handlePage(pagePath: String, titlePath: String): Sink[IO, PageOrRedirect] =
     in => in
       .filter(_.isLeft)
-      .map { case Left(page) => page.toString }
-      .to(writeToFile(path))
+      .map { case Left(page) => page }
+      .filter(page => wantedPage(page.title))
+      .observe(writeTitle(titlePath))
+      .map(_.toString)
+      .to(writeToFile(pagePath))
+
+  def writeTitle(path: String): Sink[IO,Page] =
+    in => in.map(_.title.toLowerCase).to(writeToFile(path))
+
+  def wantedPage(title: String): Boolean =
+    !(title.startsWith("File:") ||
+      title.startsWith("Template:") ||
+      title.startsWith("Help:") ||
+      title.startsWith("Draft:"))
 
   def writeRedirect(path: String): Sink[IO,PageOrRedirect] =
     in => in
@@ -137,7 +150,7 @@ object Parser {
   val stream: IO[Unit] = for {
     config <- Config.config
     _ <- getLinks(config.wikipediaDump)
-      .observe(writeLink(config.links))
+      .observe(handlePage(config.pages, config.titles))
       .observe(writeRedirect(config.redirects))
       .run
   } yield ()
