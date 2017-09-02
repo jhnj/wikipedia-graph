@@ -30,21 +30,21 @@ object Parser {
       source.close()
     })
 
-
-  type PageTitle = String
-
-  case class Page(title: PageTitle, links: List[PageTitle] = List[PageTitle]())
-  case class Redirect(from: PageTitle, to: PageTitle)
+  case class Page(title: String, links: List[String] = List[String]()) {
+    override def toString: String = s"$title|${links.mkString("|")}"
+  }
+  case class Redirect(from: String, to: String) {
+    override def toString: String = s"$from|$to"
+  }
 
   type PageOrRedirect = Either[Page, Redirect]
 
-  case class State(title: Option[PageTitle] = None,
+  case class State(title: Option[String] = None,
                    redirect: Option[String] = None,
-                   links: List[PageTitle] = List(),
+                   links: List[String] = List(),
                    isRedirect: Boolean = false,
                    inTitle: Boolean = false,
-                   inText: Boolean = false
-                  )
+                   inText: Boolean = false)
 
   def xmlHandler[F[_]]: Pipe[F, XMLEvent, PageOrRedirect] = {
     def go(s: Stream[F, XMLEvent], state: State): Pull[F, PageOrRedirect, Unit] = {
@@ -107,13 +107,11 @@ object Parser {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  def getLinks: (String, String, String) => Stream[IO, PageOrRedirect] =
-    (path: String, linksPath: String, redirectPath: String) =>
+  def getLinks: (String) => Stream[IO, PageOrRedirect] =
+    (path: String) =>
       staxFromFile(path)
         .through(xmlHandler)
-        .take(100)
-        .observe(writeLink(linksPath))
-        .observe(writeRedirect(redirectPath))
+        .take(110)
 
   def writeToFile(path: String): Sink[IO, String] =
     in => in
@@ -124,27 +122,34 @@ object Parser {
   def writeLink(path: String): Sink[IO,PageOrRedirect] =
     in => in
       .filter(_.isLeft)
-      .map { case Left(page) => page.title }
+      .map { case Left(page) => page.toString }
       .to(writeToFile(path))
 
   def writeRedirect(path: String): Sink[IO,PageOrRedirect] =
     in => in
     .filter(_.isRight)
-    .map { case Right(redirect) => redirect.from }
+    .map { case Right(redirect) => redirect.toString }
     .to(writeToFile(path))
 
-  val stream: IO[Vector[PageOrRedirect]] = for {
+  val stream: IO[Unit] = for {
     config <- Config.config
-    s <- getLinks(config.wikipediaDump, config.links, config.redirects).runLog
-  } yield s
+    _ <- getLinks(config.wikipediaDump)
+      .observe(writeLink(config.links))
+      .observe(writeRedirect(config.redirects))
+      .run
+  } yield ()
+
+  val main: IO[Unit] = for {
+    startTime <- IO { println("starting"); System.currentTimeMillis() }
+    _ <- stream
+    _ <- IO {
+      val duration = System.currentTimeMillis() - startTime
+      println(s"done in ${duration / 1000}s")
+    }
+  } yield ()
 
   def main(args: Array[String]): Unit = {
-    (for {
-      _ <- IO { println("starting") }
-      s <- stream
-      _ <- IO { println(s) }
-      _ <- IO { println("done") }
-    } yield s).unsafeRunSync()
+    main.unsafeRunSync()
   }
 }
 
