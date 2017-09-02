@@ -15,14 +15,20 @@ object Parse {
   }
 }
 
+object FilterRedirects {
+  def main(args: Array[String]): Unit = {
+    (for {
+      config <- Config.config
+      _ <- Redirects.filterRedirects(config)
+    } yield ()).unsafeRunSync()
+  }
+}
+
 object UpdatePages {
   def main(args: Array[String]): Unit = {
     (for {
       config <- Config.config
-      _ <- {
-        val pageUpdater = new PageUpdater(config)
-        pageUpdater.updatePages()
-      }
+      _ <- PageUpdater.updatePages(config)
     } yield ()).unsafeRunSync()
   }
 }

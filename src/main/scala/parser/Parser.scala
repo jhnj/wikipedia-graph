@@ -158,13 +158,7 @@ object Parser {
     startTime1 <- IO { println("starting"); System.currentTimeMillis() }
     config <- Config.config
     _ <- stream(config)
-    startTime2 <- IO {
-      println(s"done in ${(System.currentTimeMillis() - startTime1) / 1000}s")
-      println("starting redirect filtering")
-      System.currentTimeMillis()
-    }
-    _ <- Redirects.filterRedirects(config).run
-    _ <- IO { println(s"redirects filtered in ${(System.currentTimeMillis() - startTime2) / 1000}s")}
+    _ <- IO { println(s"done in ${(System.currentTimeMillis() - startTime1) / 1000}s") }
   } yield ()
 }
 

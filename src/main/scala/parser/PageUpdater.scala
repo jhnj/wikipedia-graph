@@ -49,10 +49,14 @@ class PageUpdater(config: Config) {
   }
 
   def updatePages(): IO[Unit] = for {
-    pageUpdater <- Config.config.map(config => new PageUpdater(config))
-    titles <- pageUpdater.allTitles()
-    redirects <- pageUpdater.allRedirects()
-    _ <- pageUpdater.pages(titles, redirects)
+    titles <- allTitles()
+    redirects <- allRedirects()
+    _ <- pages(titles, redirects)
   } yield ()
+}
 
+object PageUpdater {
+  def updatePages(config: Config): IO[Unit] = {
+    new PageUpdater(config).updatePages()
+  }
 }
