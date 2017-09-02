@@ -115,7 +115,7 @@ object Parser {
     (path: String) =>
       staxFromFile(path)
         .through(xmlHandler)
-          .take(200)
+          .take(5000)
 
   def writeToFile(path: String): Sink[IO, String] =
     in => in
@@ -164,7 +164,7 @@ object Parser {
       System.currentTimeMillis()
     }
     _ <- Redirects.filterRedirects(config).run
-    _ <- IO { println(s"redirects filtered in ${(startTime1 - System.currentTimeMillis()) / 1000}s")}
+    _ <- IO { println(s"redirects filtered in ${(System.currentTimeMillis() - startTime2) / 1000}s")}
   } yield ()
 
   def main(args: Array[String]): Unit = {
