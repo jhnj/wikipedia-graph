@@ -30,7 +30,7 @@ object Parser {
       source.close()
     })
 
-  case class Page(title: String, links: List[String] = List[String]()) {
+  case class Page(title: String, links: Set[String] = Set[String]()) {
     override def toString: String = s"$title|${links.mkString("|")}"
   }
   case class Redirect(from: String, to: String) {
@@ -41,7 +41,7 @@ object Parser {
 
   case class State(title: Option[String] = None,
                    redirect: Option[String] = None,
-                   links: List[String] = List(),
+                   links: Set[String] = Set(),
                    isRedirect: Boolean = false,
                    inTitle: Boolean = false,
                    inText: Boolean = false)
@@ -56,7 +56,7 @@ object Parser {
                 case "page" =>
                   go(tail, state.copy(
                     title = None,
-                    links = List(),
+                    links = Set(),
                     isRedirect = false
                   ))
 
@@ -111,7 +111,6 @@ object Parser {
     (path: String) =>
       staxFromFile(path)
         .through(xmlHandler)
-        .take(110)
 
   def writeToFile(path: String): Sink[IO, String] =
     in => in
