@@ -12,3 +12,11 @@ libraryDependencies ++= Seq(
   "co.fs2" % "fs2-io_2.12" % "0.10.0-M6",
   "com.github.pureconfig" %% "pureconfig" % "0.8.0"
 )
+
+lazy val parse = taskKey[Unit]("Parse wikipedia dump")
+lazy val updatePages = taskKey[Unit]("Parse wikipedia dump")
+lazy val pipeline = taskKey[Unit]("Run processing pipeline")
+
+fullRunTask(parse, Compile, "runner.Parse")
+fullRunTask(updatePages, Compile, "runner.UpdatePages")
+fullRunTask(pipeline, Compile, "runner.Pipeline")

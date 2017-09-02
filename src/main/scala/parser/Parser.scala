@@ -166,9 +166,5 @@ object Parser {
     _ <- Redirects.filterRedirects(config).run
     _ <- IO { println(s"redirects filtered in ${(System.currentTimeMillis() - startTime2) / 1000}s")}
   } yield ()
-
-  def main(args: Array[String]): Unit = {
-    main.unsafeRunSync()
-  }
 }
 

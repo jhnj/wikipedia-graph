@@ -12,14 +12,14 @@ class PageUpdater(config: Config) {
   val pages: String = config.pages
   val pagesWithRedirects: String = config.pagesWithRedirects
 
-  def allTitles(): IO[Set[String]] = {
+  private def allTitles(): IO[Set[String]] = {
     readAll[IO](Paths.get(titles), 4096)
       .through(text.utf8Decode)
       .through(text.lines)
       .runFold(Set[String]())(_ + _)
   }
 
-  def allRedirects(): IO[Map[String,String]] = {
+  private def allRedirects(): IO[Map[String,String]] = {
     readAll[IO](Paths.get(filteredRedirects), 4096)
       .through(text.utf8Decode)
       .through(text.lines)
@@ -27,7 +27,7 @@ class PageUpdater(config: Config) {
       .runFold(Map[String,String]())((map, arr) => map + (arr(0) -> arr(1)))
   }
 
-  def pages(titles: Set[String], redirects: Map[String, String]): IO[Unit] = {
+  private def pages(titles: Set[String], redirects: Map[String, String]): IO[Unit] = {
     readAll[IO](Paths.get(pages), 4096)
       .through(text.utf8Decode)
       .through(text.lines)
@@ -41,10 +41,18 @@ class PageUpdater(config: Config) {
       .run
   }
 
-  def updateLinks(links: Array[String], titles: Set[String], redirects: Map[String,String]): Array[String] = {
+  private def updateLinks(links: Array[String], titles: Set[String], redirects: Map[String,String]): Array[String] = {
     links.collect {
       case link if redirects.isDefinedAt(link) => redirects(link)
       case link if titles.contains(link) => link
     }
   }
+
+  def updatePages(): IO[Unit] = for {
+    pageUpdater <- Config.config.map(config => new PageUpdater(config))
+    titles <- pageUpdater.allTitles()
+    redirects <- pageUpdater.allRedirects()
+    _ <- pageUpdater.pages(titles, redirects)
+  } yield ()
+
 }
