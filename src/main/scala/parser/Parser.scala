@@ -34,7 +34,7 @@ object Parser {
     override def toString: String = s"${title.toLowerCase}|${links.map(_.toLowerCase).mkString("|")}"
   }
   case class Redirect(from: String, to: String) {
-    override def toString: String = s"${from.toLowerCase}${to.toLowerCase}"
+    override def toString: String = s"${from.toLowerCase}|${to.toLowerCase}"
   }
 
   type PageOrRedirect = Either[Page, Redirect]
@@ -147,8 +147,7 @@ object Parser {
     .map { case Right(redirect) => redirect.toString }
     .to(writeToFile(path))
 
-  val stream: IO[Unit] = for {
-    config <- Config.config
+  def stream(config: Config): IO[Unit] = for {
     _ <- getLinks(config.wikipediaDump)
       .observe(handlePage(config.pages, config.titles))
       .observe(writeRedirect(config.redirects))
@@ -156,12 +155,16 @@ object Parser {
   } yield ()
 
   val main: IO[Unit] = for {
-    startTime <- IO { println("starting"); System.currentTimeMillis() }
-    _ <- stream
-    _ <- IO {
-      val duration = System.currentTimeMillis() - startTime
-      println(s"done in ${duration / 1000}s")
+    startTime1 <- IO { println("starting"); System.currentTimeMillis() }
+    config <- Config.config
+    _ <- stream(config)
+    startTime2 <- IO {
+      println(s"done in ${(System.currentTimeMillis() - startTime1) / 1000}s")
+      println("starting redirect filtering")
+      System.currentTimeMillis()
     }
+    _ <- Redirects.filterRedirects(config).run
+    _ <- IO { println(s"redirects filtered in ${(startTime1 - System.currentTimeMillis()) / 1000}s")}
   } yield ()
 
   def main(args: Array[String]): Unit = {
