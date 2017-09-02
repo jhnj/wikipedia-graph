@@ -1,2 +1,3 @@
 wikipedia-dump = "/path/to/wikidump"
 links = "/path/to/links"
+redirects = "/path/to/redirects"

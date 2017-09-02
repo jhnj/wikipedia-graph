@@ -105,26 +105,40 @@ object Parser {
     in => go(in, State()).stream
   }
 
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  def getLinks: (String, String, String) => Stream[IO, PageOrRedirect] =
+    (path: String, linksPath: String, redirectPath: String) =>
+      staxFromFile(path)
+        .through(xmlHandler)
+        .take(100)
+        .observe(writeLink(linksPath))
+        .observe(writeRedirect(redirectPath))
+
+  def writeToFile(path: String): Sink[IO, String] =
+    in => in
+      .intersperse("\n")
+      .through(text.utf8Encode)
+      .to(fs2.io.file.writeAll(Paths.get(path)))
+
+  def writeLink(path: String): Sink[IO,PageOrRedirect] =
+    in => in
+      .filter(_.isLeft)
+      .map { case Left(page) => page.title }
+      .to(writeToFile(path))
+
+  def writeRedirect(path: String): Sink[IO,PageOrRedirect] =
+    in => in
+    .filter(_.isRight)
+    .map { case Right(redirect) => redirect.from }
+    .to(writeToFile(path))
+
+  val stream: IO[Vector[PageOrRedirect]] = for {
+    config <- Config.config
+    s <- getLinks(config.wikipediaDump, config.links, config.redirects).runLog
+  } yield s
+
   def main(args: Array[String]): Unit = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-
-    def getLinks: (String, String) => Stream[IO, PageOrRedirect] =
-      (path: String, linksPath: String) =>
-        staxFromFile(path).through(xmlHandler).take(100).observe(writeLink(linksPath))
-
-    def writeLink(path: String): Sink[IO,PageOrRedirect] =
-      in => in
-        .filter(_.isLeft)
-        .map { case Left(page) => page.title }
-        .intersperse("\n")
-        .through(text.utf8Encode)
-        .to(fs2.io.file.writeAll(Paths.get(path)))
-
-    val stream: IO[Vector[PageOrRedirect]] = for {
-      config <- Config.config
-      s <- getLinks(config.wikipediaDump, config.links).runLog
-    } yield s
-
     (for {
       _ <- IO { println("starting") }
       s <- stream
