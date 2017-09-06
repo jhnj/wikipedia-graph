@@ -8,7 +8,8 @@ case class Config(wikipediaDump: String,
                   redirects: String,
                   titles: String,
                   filteredRedirects: String,
-                  pagesWithRedirects: String)
+                  pagesWithRedirects: String,
+                  database: String)
 
 object Config {
   def config: IO[Config] = IO { loadConfigOrThrow[Config] }
