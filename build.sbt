@@ -13,11 +13,3 @@ libraryDependencies ++= Seq(
   "com.github.pureconfig" %% "pureconfig" % "0.8.0",
   "org.xerial" % "sqlite-jdbc" % "3.20.0"
 )
-
-lazy val parse = taskKey[Unit]("Parse wikipedia dump")
-lazy val updatePages = taskKey[Unit]("Parse wikipedia dump")
-lazy val pipeline = taskKey[Unit]("Run processing pipeline")
-
-fullRunTask(parse, Compile, "runner.Parse")
-fullRunTask(updatePages, Compile, "runner.UpdatePages")
-fullRunTask(pipeline, Compile, "runner.Pipeline")

@@ -154,11 +154,16 @@ object Parser {
       .run
   } yield ()
 
-  val main: IO[Unit] = for {
-    startTime1 <- IO { println("starting"); System.currentTimeMillis() }
-    config <- Config.config
-    _ <- stream(config)
-    _ <- IO { println(s"done in ${(System.currentTimeMillis() - startTime1) / 1000}s") }
-  } yield ()
+  val parse: (Config) => IO[Unit] =
+    config =>
+      for {
+        startTime1 <- IO {
+          println("starting"); System.currentTimeMillis()
+        }
+        _ <- stream(config)
+        _ <- IO {
+          println(s"done in ${(System.currentTimeMillis() - startTime1) / 1000}s")
+        }
+      } yield ()
 }
 

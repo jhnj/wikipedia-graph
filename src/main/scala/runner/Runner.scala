@@ -2,34 +2,15 @@ package runner
 
 import parser._
 
-object Pipeline {
-  def main(args: Array[String]): Unit = {
-    Parse.main(args)
-    FilterRedirects.main(args)
-    UpdatePages.main(args)
-  }
-}
-
-object Parse {
-  def main(args: Array[String]): Unit = {
-    Parser.main.unsafeRunSync()
-  }
-}
-
-object FilterRedirects {
+object Runner {
   def main(args: Array[String]): Unit = {
     (for {
       config <- Config.config
-      _ <- Redirects.filterRedirects(config).run
-    } yield ()).unsafeRunSync()
-  }
-}
-
-object UpdatePages {
-  def main(args: Array[String]): Unit = {
-    (for {
-      config <- Config.config
+      _ <- Parser.parse(config)
+      _ <- Redirects.filterRedirects(config)
       _ <- PageUpdater.updatePages(config)
+      _ <- SQLIndex.run(config)
+      _ <- GraphFile.run(config)
     } yield ()).unsafeRunSync()
   }
 }

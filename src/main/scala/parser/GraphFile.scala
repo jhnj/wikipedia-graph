@@ -70,17 +70,8 @@ class GraphFile(config: Config) {
 }
 
 object GraphFile {
-
   def run(config: Config): IO[Unit] = {
     val graphFile = new GraphFile(config)
-    graphFile.run.flatMap(_ => graphFile.inspect)
-    graphFile.inspect
+    graphFile.run
   }
-  def main(args: Array[String]): Unit = {
-    (for {
-      config <- Config.config
-      _ <- run(config)
-    } yield ()).unsafeRunSync()
-  }
-
 }

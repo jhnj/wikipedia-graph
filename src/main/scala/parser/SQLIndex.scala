@@ -8,7 +8,9 @@ import fs2.io.file.readAll
 import fs2.{Pipe, Sink, Stream, text}
 import db.DB._
 
-class SQLIndex(implicit config: Config) {
+class SQLIndex(config: Config) {
+  implicit val c: Config = config
+
   def createTable: (Connection) => Sink[IO, Unit] = {
     val query =
       """
@@ -65,11 +67,8 @@ class SQLIndex(implicit config: Config) {
 }
 
 object SQLIndex {
-  def main(args: Array[String]): Unit = {
-    (for {
-      config <- Config.config
-      sqlInd <- IO { new SQLIndex()(config) }
-      _ <- sqlInd.run
-    } yield ()).unsafeRunSync()
+  def run(config: Config): IO[Unit] = {
+    val sqlIndex = new SQLIndex(config)
+    sqlIndex.run
   }
 }
