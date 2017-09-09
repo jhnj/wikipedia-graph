@@ -16,7 +16,9 @@ object Runner {
       for {
         config <- Config.config
         tasks <- args.toList
-          .map(getTask(_)(config))
+          .map(task => {
+            logRun(task, getTask(task)(config))
+          })
           .sequence
       } yield tasks
   }
@@ -24,7 +26,7 @@ object Runner {
   def getTask(task: String): Config => IO[Unit] = task match {
     case "pipeline" =>
       config => for {
-        _ <- Parser.parse(config)
+        _ <- Parser.run(config)
         _ <- Redirects.run(config)
         _ <- PageUpdater.run(config)
         _ <- SQLIndex.run(config)
@@ -32,7 +34,7 @@ object Runner {
       } yield ()
 
     case "parse" =>
-      _ => IO { println("dank") }
+      Parser.run
 
     case "redirects" =>
       Redirects.run
@@ -54,5 +56,17 @@ object Runner {
   val help: IO[Unit] = IO {
     println("Usage 'sbt run [commands]' where '[commands] is any of the following separated by spaces:")
     println("pipeline, parse, redirects, updatepages, sqlindex, graphfile")
+  }
+
+  def logRun[A](taskName: String, task: IO[A]): IO[A] = {
+    for {
+      startTime <- IO {
+        println(s"starting task: $taskName"); System.currentTimeMillis()
+      }
+      res <- task
+      _ <- IO {
+        println(s"done task $taskName in ${(System.currentTimeMillis() - startTime) / 1000}s")
+      }
+    } yield res
   }
 }

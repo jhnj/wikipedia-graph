@@ -147,23 +147,11 @@ object Parser {
     .map { case Right(redirect) => redirect.toString }
     .to(writeToFile(path))
 
-  def stream(config: Config): IO[Unit] = for {
+  def run(config: Config): IO[Unit] = for {
     _ <- getLinks(config.wikipediaDump)
       .observe(handlePage(config.pages, config.titles))
       .observe(writeRedirect(config.redirects))
       .run
   } yield ()
-
-  val parse: (Config) => IO[Unit] =
-    config =>
-      for {
-        startTime1 <- IO {
-          println("starting"); System.currentTimeMillis()
-        }
-        _ <- stream(config)
-        _ <- IO {
-          println(s"done in ${(System.currentTimeMillis() - startTime1) / 1000}s")
-        }
-      } yield ()
 }
 
