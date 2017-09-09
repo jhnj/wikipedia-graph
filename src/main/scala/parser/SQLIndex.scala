@@ -44,9 +44,9 @@ class SQLIndex(config: Config) {
   }
 
   val accumulateOffset: Pipe[IO, TitleAndLength, (TitleAndLength, Long)] =
-    in => in.zipWith(in.scan(0L) { case (offset, titleAndLength) =>
+    in => in.zipWithScan(0L) { case (offset, titleAndLength) =>
       offset + titleAndLength.length
-    })((_,_))
+    }
 
   case class TitleAndLength(title: String, length: Int)
 
