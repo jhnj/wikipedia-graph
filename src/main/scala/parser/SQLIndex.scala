@@ -67,8 +67,9 @@ class SQLIndex(config: Config) {
 }
 
 object SQLIndex {
-  def run(config: Config): IO[Unit] = {
-    val sqlIndex = new SQLIndex(config)
-    sqlIndex.run
+  val run: (Config) => IO[Unit] = {
+    config =>
+      val sqlIndex = new SQLIndex(config)
+      sqlIndex.run
   }
 }

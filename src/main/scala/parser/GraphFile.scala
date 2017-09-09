@@ -70,8 +70,9 @@ class GraphFile(config: Config) {
 }
 
 object GraphFile {
-  def run(config: Config): IO[Unit] = {
-    val graphFile = new GraphFile(config)
-    graphFile.run
+  val run: (Config) => IO[Unit] = {
+    config =>
+      val graphFile = new GraphFile(config)
+      graphFile.run
   }
 }

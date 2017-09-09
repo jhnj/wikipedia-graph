@@ -33,14 +33,17 @@ class Redirects(config: Config) {
 
   def isValidRedirect(from: String, to: String, titles: Set[String]): Boolean =
     titles.contains(to) && !titles.contains(from)
+
+  val run: IO[Unit] = (for {
+    allTitles <- allTitles()
+    _ <- filterRedirects(allTitles)
+  } yield ()).run
 }
 
 object Redirects {
-  def filterRedirects(config: Config): Stream[IO, Unit] = {
-    val redirects = new Redirects(config)
-    for {
-      allTitles <- redirects.allTitles()
-      _ <- redirects.filterRedirects(allTitles)
-    } yield ()
+  val run: (Config) => IO[Unit] = {
+    config =>
+      val redirects = new Redirects(config)
+      redirects.run
   }
 }

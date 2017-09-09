@@ -56,7 +56,7 @@ class PageUpdater(config: Config) {
 }
 
 object PageUpdater {
-  def updatePages(config: Config): IO[Unit] = {
-    new PageUpdater(config).updatePages()
-  }
+  val run: (Config) => IO[Unit] =
+    config =>
+      new PageUpdater(config).updatePages()
 }
