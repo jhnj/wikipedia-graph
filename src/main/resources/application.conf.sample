@@ -4,3 +4,6 @@ redirects = "/path/to/redirects"
 titles = "/path/to/titles"
 filtered-redirects = "/path/to/redirects"
 pages-with-redirects = "/path/to/file"
+
+database = "data/index.db"
+graph = "data/graph.bin"

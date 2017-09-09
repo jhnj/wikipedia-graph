@@ -3,9 +3,7 @@ package db
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import cats.effect.{IO, Sync}
-import cats._
-import implicits._
-import cats.syntax._
+import cats.implicits._
 import fs2.{Pipe, Stream}
 import parser.Config
 

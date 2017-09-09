@@ -9,7 +9,8 @@ case class Config(wikipediaDump: String,
                   titles: String,
                   filteredRedirects: String,
                   pagesWithRedirects: String,
-                  database: String)
+                  database: String,
+                  graph: String)
 
 object Config {
   def config: IO[Config] = IO { loadConfigOrThrow[Config] }
