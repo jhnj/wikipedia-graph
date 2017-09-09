@@ -1,4 +1,4 @@
-package parser
+package runner
 
 import cats.effect.IO
 import pureconfig._

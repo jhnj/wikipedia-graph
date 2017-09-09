@@ -8,6 +8,7 @@ import implicits._
 import cats.effect._
 import cats.effect.IO
 import fs2._
+import runner.Config
 
 import scala.xml.pull._
 

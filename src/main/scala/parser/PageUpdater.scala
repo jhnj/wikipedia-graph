@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import cats.effect.IO
 import fs2.io.file.{readAll, writeAll}
 import fs2.{Stream, text}
+import runner.Config
 
 class PageUpdater(config: Config) {
   val titles: String = config.titles

@@ -4,8 +4,8 @@ import java.sql.{Connection, DriverManager, ResultSet}
 
 import cats.effect.{IO, Sync}
 import cats.implicits._
-import fs2.{Pipe, Stream}
-import parser.Config
+import fs2.{Pipe, Sink, Stream}
+import runner.Config
 
 object DB {
   def useDb[O](use: Connection => Stream[IO, O])(implicit config: Config): Stream[IO, O] = {
@@ -41,5 +41,35 @@ object DB {
         case _: Exception => Stream.empty.covaryOutput[O]
       }
     })
+  }
+
+  def getOffset(connection: Connection): Pipe[IO,String,Int] = {
+    val query = (title: String) =>
+      s"select (offset) from pages where title = $title"
+    val getOffset = (rs: ResultSet) =>
+      rs.getInt(1)
+    executeQuery(query, getOffset)(connection)(Sync[IO])
+  }
+
+  def createTable: (Connection) => Sink[IO, Unit] = {
+    val query =
+      """
+      CREATE TABLE pages (
+        title VARCHAR(256) PRIMARY KEY,
+        offset INT
+      );
+      CREATE INDEX pages_offset ON pages (offset);
+      PRAGMA synchronous = OFF;
+        """
+    executeUpdate(_ => query)
+  }
+
+  import parser.SQLIndex.TitleAndLength
+
+  def insertOffset(connection: Connection): Sink[IO, (TitleAndLength, Long)] = {
+    val query: ((TitleAndLength, Long)) => String = { case (t, offset) =>
+      s"INSERT INTO pages (title, offset) values (${'"' + t.title + '"'}, $offset)"
+    }
+    executeUpdate(query)(connection)
   }
 }

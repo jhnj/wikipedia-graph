@@ -7,29 +7,31 @@ import cats.effect.IO
 import fs2.io.file.readAll
 import fs2.{Pipe, Sink, Stream, text}
 import db.DB._
+import parser.SQLIndex.TitleAndLength
+import runner.Config
 
 class SQLIndex(config: Config) {
   implicit val c: Config = config
 
-  def createTable: (Connection) => Sink[IO, Unit] = {
-    val query =
-      """
-      CREATE TABLE pages (
-        title VARCHAR(256) PRIMARY KEY,
-        offset INT
-      );
-      CREATE INDEX pages_offset ON pages (offset);
-      PRAGMA synchronous = OFF;
-        """
-    executeUpdate(_ => query)
-  }
-
-  def insertOffset(connection: Connection): Sink[IO, (TitleAndLength, Long)] = {
-    val query: ((TitleAndLength, Long)) => String = { case (t, offset) =>
-      s"INSERT INTO pages (title, offset) values (${'"' + t.title + '"'}, $offset)"
-    }
-    executeUpdate(query)(connection)
-  }
+//  def createTable: (Connection) => Sink[IO, Unit] = {
+//    val query =
+//      """
+//      CREATE TABLE pages (
+//        title VARCHAR(256) PRIMARY KEY,
+//        offset INT
+//      );
+//      CREATE INDEX pages_offset ON pages (offset);
+//      PRAGMA synchronous = OFF;
+//        """
+//    executeUpdate(_ => query)
+//  }
+//
+//  def insertOffset(connection: Connection): Sink[IO, (TitleAndLength, Long)] = {
+//    val query: ((TitleAndLength, Long)) => String = { case (t, offset) =>
+//      s"INSERT INTO pages (title, offset) values (${'"' + t.title + '"'}, $offset)"
+//    }
+//    executeUpdate(query)(connection)
+//  }
 
   def allTitles(): (Connection) => Stream[IO, Unit] = {
     connection: Connection =>
@@ -48,8 +50,6 @@ class SQLIndex(config: Config) {
       offset + titleAndLength.length
     }
 
-  case class TitleAndLength(title: String, length: Int)
-
   val parsePage: Pipe[IO,String,TitleAndLength] = {
     in => in.map(line => line.split('|')).map(arr => TitleAndLength(arr(0), arr.tail.length))
   }
@@ -67,6 +67,8 @@ class SQLIndex(config: Config) {
 }
 
 object SQLIndex {
+  case class TitleAndLength(title: String, length: Int)
+
   val run: (Config) => IO[Unit] = {
     config =>
       val sqlIndex = new SQLIndex(config)

@@ -6,6 +6,7 @@ import java.nio.file.Paths
 import cats.effect.IO
 import fs2.io.file._
 import fs2._
+import runner.Config
 
 class Redirects(config: Config) {
   val redirects: String = config.redirects

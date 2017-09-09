@@ -7,17 +7,9 @@ import cats.effect.{IO, Sync}
 import db.DB._
 import fs2.{Chunk, Pipe, Sink, Stream, text}
 import fs2.io.file.readAll
+import runner.Config
 
 class GraphFile(config: Config) {
-
-  def getOffset(connection: Connection): Pipe[IO,String,Int] = {
-    val query = (title: String) =>
-      s"select (offset) from pages where title = $title"
-    val getOffset = (rs: ResultSet) =>
-      rs.getInt(1)
-    executeQuery(query, getOffset)(connection)(Sync[IO])
-  }
-
   case class TitleAndLinks(title: String, links: List[String])
 
   val parsePage: Pipe[IO,String,TitleAndLinks] = {
