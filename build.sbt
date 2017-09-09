@@ -11,5 +11,7 @@ libraryDependencies ++= Seq(
   "co.fs2" % "fs2-core_2.12" % "0.10.0-M6",
   "co.fs2" % "fs2-io_2.12" % "0.10.0-M6",
   "com.github.pureconfig" %% "pureconfig" % "0.8.0",
-  "org.xerial" % "sqlite-jdbc" % "3.20.0"
+  "org.xerial" % "sqlite-jdbc" % "3.20.0",
+
+  "org.scalatest" % "scalatest_2.12" % "3.0.4" % "test"
 )

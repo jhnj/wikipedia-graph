@@ -13,26 +13,6 @@ import runner.Config
 class SQLIndex(config: Config) {
   implicit val c: Config = config
 
-//  def createTable: (Connection) => Sink[IO, Unit] = {
-//    val query =
-//      """
-//      CREATE TABLE pages (
-//        title VARCHAR(256) PRIMARY KEY,
-//        offset INT
-//      );
-//      CREATE INDEX pages_offset ON pages (offset);
-//      PRAGMA synchronous = OFF;
-//        """
-//    executeUpdate(_ => query)
-//  }
-//
-//  def insertOffset(connection: Connection): Sink[IO, (TitleAndLength, Long)] = {
-//    val query: ((TitleAndLength, Long)) => String = { case (t, offset) =>
-//      s"INSERT INTO pages (title, offset) values (${'"' + t.title + '"'}, $offset)"
-//    }
-//    executeUpdate(query)(connection)
-//  }
-
   def allTitles(): (Connection) => Stream[IO, Unit] = {
     connection: Connection =>
       Stream(()).covary[IO].to(createTable(connection)) ++

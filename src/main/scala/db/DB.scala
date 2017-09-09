@@ -38,16 +38,18 @@ object DB {
             .map(opt => opt.map((_, rs)))
         })
       } catch {
-        case _: Exception => Stream.empty.covaryOutput[O]
+        case _: Exception =>
+          Stream.empty.covaryOutput[O]
       }
     })
   }
 
   def getOffset(connection: Connection): Pipe[IO,String,Int] = {
     val query = (title: String) =>
-      s"select (offset) from pages where title = $title"
+      s"select (offset) from pages where title = '$title'"
     val getOffset = (rs: ResultSet) =>
       rs.getInt(1)
+
     executeQuery(query, getOffset)(connection)(Sync[IO])
   }
 
