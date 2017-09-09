@@ -13,7 +13,9 @@ class GraphFile(config: Config) {
   case class TitleAndLinks(title: String, links: List[String])
 
   val parsePage: Pipe[IO,String,TitleAndLinks] = {
-    in => in.map(line => line.split('|')).map(arr => TitleAndLinks(arr(0), arr.tail.toList))
+    in => in.collect {
+      case line: String if line.length > 0 => line.split('|')
+    } .map(arr => TitleAndLinks(arr(0), arr.tail.toList))
   }
 
   def createGraph: (Connection) => Stream[IO, Unit] = {
@@ -31,15 +33,6 @@ class GraphFile(config: Config) {
         .to(fs2.io.file.writeAll(Paths.get(config.graph)))
         .through(log)
   }
-
-  def inspect: IO[Unit] = readAll[IO](Paths.get(config.pagesWithRedirects), 4)
-        .chunks
-          .map(chunk => {
-            val list = chunk.toList
-            ByteBuffer.wrap(list.toArray).getInt
-          })
-          .map(i => println(i)).run
-
 
   def toBin(connection: Connection): Pipe[IO,TitleAndLinks,Int] =
     in => in.flatMap(tl =>

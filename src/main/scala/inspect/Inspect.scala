@@ -20,21 +20,25 @@ class Inspect(config: Config) {
       .through(DB.getOffset(connection))
       .flatMap(offset => {
         readAll[IO](Paths.get(config.graph), 4096)
-          .drop(offset)
           .through(getInts)
-          .take(12)
+          .drop(offset)
+          .through(takeLinks)
           .map(i => println(i))
       })
+
+  def takeLinks[F[_]]: Pipe[F, Int, Int] = in =>
+    in.head.flatMap(numberOfLinks => in.take(numberOfLinks))
 }
 
 object Inspect {
   def main(args: Array[String]): Unit = {
     (for {
       config <- Config.config
-      _ <- {
+      l <- {
         val a = new Inspect(config)
-        a.inspect("april").run
+        a.inspect("august").runLog
       }
+      _ <- IO { println("len: " + l.length) }
     } yield ()).unsafeRunSync()
   }
 

@@ -31,7 +31,7 @@ class SQLIndex(config: Config) {
     }
 
   val parsePage: Pipe[IO,String,TitleAndLength] = {
-    in => in.map(line => line.split('|')).map(arr => TitleAndLength(arr(0), arr.tail.length))
+    in => in.map(line => line.split('|')).map(arr => TitleAndLength(arr(0), arr.length))
   }
 
   def log[A,B]: Pipe[IO, A, A] = {

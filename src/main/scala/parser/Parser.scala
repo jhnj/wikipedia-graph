@@ -116,7 +116,6 @@ object Parser {
     (path: String) =>
       staxFromFile(path)
         .through(xmlHandler)
-          .take(5000)
 
   def writeToFile(path: String): Sink[IO, String] =
     in => in
