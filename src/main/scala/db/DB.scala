@@ -48,9 +48,11 @@ object DB {
     })
   }
 
+  def escapeQuotes: String => String = _.replaceAll("'", "''")
+
   def getOffset(connection: Connection): Pipe[IO,String,Int] = {
     val query = (title: String) =>
-      s"select (offset) from pages where title = '$title'"
+      s"select (offset) from pages where title = '${escapeQuotes(title)}'"
     val getOffset = (rs: ResultSet) =>
       rs.getInt(1)
 
@@ -74,7 +76,7 @@ object DB {
 
   def insertOffset(connection: Connection): Sink[IO, (TitleAndLength, Long)] = {
     val query: ((TitleAndLength, Long)) => String = { case (t, offset) =>
-      s"INSERT INTO pages (title, offset) values (${'"' + t.title + '"'}, $offset)"
+      s"INSERT INTO pages (title, offset) values ('${escapeQuotes(t.title)}', $offset)"
     }
     executeUpdate(query)(connection)
   }

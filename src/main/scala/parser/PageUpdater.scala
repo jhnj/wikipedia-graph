@@ -42,11 +42,11 @@ class PageUpdater(config: Config) {
       .run
   }
 
-  private def updateLinks(links: Array[String], titles: Set[String], redirects: Map[String,String]): Array[String] = {
+  private def updateLinks(links: Array[String], titles: Set[String], redirects: Map[String,String]): Set[String] = {
     links.collect {
       case link if redirects.isDefinedAt(link) => redirects(link)
       case link if titles.contains(link) => link
-    }
+    }.toSet
   }
 
   def updatePages(): IO[Unit] = for {

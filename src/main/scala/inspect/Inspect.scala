@@ -39,7 +39,7 @@ object Inspect {
       config <- Config.config
       l <- {
         val a = new Inspect(config)
-        a.inspect("august").runLog
+        a.inspect("August").runLog
       }
       _ <- IO { println("len: " + l.length) }
     } yield ()).unsafeRunSync()
