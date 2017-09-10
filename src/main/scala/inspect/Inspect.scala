@@ -21,16 +21,9 @@ class Inspect(config: Config) {
       Stream(title).covary[IO]
         .through(DB.getOffset(connection))
         .flatMap(offset => {
-          readAll[IO](Paths.get(config.graph), 4096)
-            .through(Inspect.getInts)
-            .drop(offset)
-            .through(takeLinks)
-            .map(i => println(i))
+          Inspect.inspectLinks(offset, config)
         })
     }
-
-  def takeLinks[F[_]]: Pipe[F, Int, Int] = in =>
-    in.head.flatMap(numberOfLinks => in.take(numberOfLinks))
 }
 
 object Inspect {
@@ -44,6 +37,20 @@ object Inspect {
       _ <- IO { println("len: " + l.length) }
     } yield ()).unsafeRunSync()
   }
+
+  def inspectLinks(offset: Int, config: Config): Stream[IO, Unit] = {
+    graphStream(config)
+      .drop(offset)
+      .through(takeLinks)
+      .map(i => println(i))
+  }
+
+  def graphStream(config: Config): Stream[IO, Int] =
+    readAll[IO](Paths.get(config.graph), 4096)
+      .through(getInts)
+
+  def takeLinks[F[_]]: Pipe[F, Int, Int] = in =>
+    in.head.flatMap(numberOfLinks => in.take(numberOfLinks))
 
   def getInts[F[_]]: Pipe[F,Byte,Int] = {
     def getInt(buffer: Vector[Byte], chunk: Chunk[Byte]): (Vector[Byte], Chunk[Int]) = {

@@ -1,6 +1,14 @@
 package search
 
+import java.sql.Connection
+
+import cats.data.{Reader, ReaderT}
 import cats.effect.IO
+import db.DB
+import runner.Config
+import fs2.Stream
+import fs2.io._
+import inspect.Inspect
 
 import scala.collection.mutable
 import scala.io.StdIn.readLine
@@ -20,7 +28,6 @@ class Graph(graph: Vector[Int], size: Int) {
     var found = false
     while (q.nonEmpty && !found) {
       val node = q.dequeue
-      println(node)
       if (node == stop)
         found = true
       else {
@@ -45,13 +52,32 @@ class Graph(graph: Vector[Int], size: Int) {
   }
 }
 
-//object Graph {
-//  def getTitle = IO { readLine("Enter start article") }
-//
-//
-//  for {
-//    start <- getTitle
-//    stop <- getTitle
-//  }
-//
-//}
+object Graph {
+  def getTitleOffset: ReaderT[IO, Config, Int] = ReaderT { config =>
+    for {
+      title <- IO {
+        readLine("Enter article: ")
+      }
+      offset <- getOffset(title)(config)
+    } yield offset.head
+  }
+
+  def getOffset(title: String)(config: Config): IO[Vector[Int]] = {
+    DB.useDb(Reader[Connection, Stream[IO, Int]] { conn: Connection =>
+      Stream(title).covary[IO].through(DB.getOffset(conn))
+    })(config).runLog
+  }
+
+  def main(args: Array[String]): Unit = {
+    (for {
+      config <- Config.config
+      start <- getTitleOffset.run(config)
+      stop <- getTitleOffset.run(config)
+      graphVec <- Inspect.graphStream(config).runLog
+      _ <- IO {
+        val graph = new Graph(graphVec, graphVec.size)
+        println(graph.bfs(start, stop))
+      }
+    } yield ()).unsafeRunSync()
+  }
+}
