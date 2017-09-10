@@ -4,27 +4,30 @@ import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.sql.Connection
 
+import cats.data.Reader
 import cats.effect.IO
 import db.DB
+import db.DB.Work
 import runner.Config
 import fs2._
 import fs2.io.file.readAll
-import Inspect._
 
 class Inspect(config: Config) {
 
   def inspect(title: String): Stream[IO, Unit] = DB.useDb(findOffset(title))(config)
 
-  def findOffset(title: String)(connection: Connection): Stream[IO, Unit] =
-    Stream(title).covary[IO]
-      .through(DB.getOffset(connection))
-      .flatMap(offset => {
-        readAll[IO](Paths.get(config.graph), 4096)
-          .through(getInts)
-          .drop(offset)
-          .through(takeLinks)
-          .map(i => println(i))
-      })
+  def findOffset(title: String): Work[IO,Unit] =
+    Reader { connection: Connection =>
+      Stream(title).covary[IO]
+        .through(DB.getOffset(connection))
+        .flatMap(offset => {
+          readAll[IO](Paths.get(config.graph), 4096)
+            .through(Inspect.getInts)
+            .drop(offset)
+            .through(takeLinks)
+            .map(i => println(i))
+        })
+    }
 
   def takeLinks[F[_]]: Pipe[F, Int, Int] = in =>
     in.head.flatMap(numberOfLinks => in.take(numberOfLinks))
