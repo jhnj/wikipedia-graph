@@ -59,6 +59,15 @@ object DB {
     executeQuery(query, getOffset)(connection)(Sync[IO])
   }
 
+  def getTitle(connection: Connection): Pipe[IO,Int,String] = {
+    val query = (offset: Int) =>
+      s"select (title) from pages where offset = $offset"
+    val getOffset = (rs: ResultSet) =>
+      rs.getString(1)
+
+    executeQuery(query, getOffset)(connection)(Sync[IO])
+  }
+
   def createTable: (Connection) => Sink[IO, Unit] = {
     val query =
       """

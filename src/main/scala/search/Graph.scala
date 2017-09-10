@@ -9,6 +9,7 @@ import runner.Config
 import fs2.Stream
 import fs2.io._
 import inspect.Inspect
+import cats.implicits._
 
 import scala.collection.mutable
 import scala.io.StdIn.readLine
@@ -77,16 +78,24 @@ object Graph {
     })(config).runLog
   }
 
+  def getTitle(offset: Int)(config: Config): IO[Option[String]] = {
+    DB.useDb(Reader[Connection, Stream[IO, String]] { conn: Connection =>
+      Stream(offset).covary[IO].through(DB.getTitle(conn))
+    })(config).runLog.map(_.headOption)
+  }
+
   def main(args: Array[String]): Unit = {
     (for {
       config <- Config.config
       start <- getTitleOffset.run(config)
       stop <- getTitleOffset.run(config)
       graphVec <- Inspect.graphStream(config).runLog
-      _ <- IO {
+      path <- IO {
         val graph = new Graph(graphVec, graphVec.size)
-        println(graph.bfs(start, stop))
+        graph.bfs(start, stop)
       }
+      seq <- path.map(getTitle(_)(config)).sequence
+      _ <- IO { println(seq.sequence) }
     } yield ()).unsafeRunSync()
   }
 }
