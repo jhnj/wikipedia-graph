@@ -26,7 +26,7 @@ class SQLIndex(config: Config) {
 
   val accumulateOffset: Pipe[IO, TitleAndLength, (TitleAndLength, Long)] =
     in => in.zipWithScan(0L) { case (offset, titleAndLength) =>
-      offset + titleAndLength.length
+      offset + titleAndLength.length + 1
     }
 
   val parsePage: Pipe[IO,String,TitleAndLength] = {

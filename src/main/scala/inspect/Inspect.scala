@@ -50,7 +50,7 @@ object Inspect {
       .through(getInts)
 
   def takeLinks[F[_]]: Pipe[F, Int, Int] = in =>
-    in.head.flatMap(numberOfLinks => in.take(numberOfLinks))
+    in.head.flatMap(numberOfLinks => in.take(numberOfLinks + 2))
 
   def getInts[F[_]]: Pipe[F,Byte,Int] = {
     def getInt(buffer: Vector[Byte], chunk: Chunk[Byte]): (Vector[Byte], Chunk[Int]) = {

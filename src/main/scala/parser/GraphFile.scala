@@ -24,6 +24,7 @@ class GraphFile(config: Config) {
       .through(text.utf8Decode)
       .through(text.lines)
       .through(parsePage)
+      .zipWithIndex
       .through(toBin(connection))
       .flatMap { s =>
         val buffer = ByteBuffer.allocate(4)
@@ -34,14 +35,14 @@ class GraphFile(config: Config) {
       .through(log)
   }
 
-  def toBin(connection: Connection): Pipe[IO,TitleAndLinks,Int] =
-    in => in.flatMap(tl =>
-      Stream(tl.links.length).covary[IO] ++
-      Stream
-        .emits(tl.links)
-        .covary[IO]
-        .through(getOffset(connection))
-    )
+  def toBin(connection: Connection): Pipe[IO, (TitleAndLinks, Long), Int] =
+    in => in.flatMap { case (tl, index) =>
+      Stream(tl.links.length, index.toInt).covary[IO] ++
+        Stream
+          .emits(tl.links)
+          .covary[IO]
+          .through(getOffset(connection))
+    }
 
   def log[A,B]: Pipe[IO, A, A] = {
     in => in.zipWithIndex.map(tuple => {

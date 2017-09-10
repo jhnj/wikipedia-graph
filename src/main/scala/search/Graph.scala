@@ -14,14 +14,15 @@ import scala.collection.mutable
 import scala.io.StdIn.readLine
 
 class Graph(graph: Vector[Int], size: Int) {
+  val prev: Array[Int] = Array.fill(size)(-1)
+
   def links(offset: Int): Vector[Int] = {
     val numLinks = graph(offset)
-    graph.slice(offset + 1, offset + numLinks + 1)
+    graph.slice(offset + 2, offset + numLinks + 2)
   }
 
   def bfs(start: Int, stop: Int): List[Int] = {
     val q = new mutable.Queue[Int]
-    val prev = Array.fill(size)(-1)
 
     q.enqueue(start)
 
@@ -32,8 +33,8 @@ class Graph(graph: Vector[Int], size: Int) {
         found = true
       else {
         links(node).foreach(n => {
-          if (prev(n) < 0) {
-            prev(n) = node
+          if (getPrev(n) < 0) {
+            setPrev(n,node)
             q.enqueue(n)
           }
         })
@@ -45,10 +46,18 @@ class Graph(graph: Vector[Int], size: Int) {
       if (node == start)
         node +: list
       else
-        getPath(prev(node), node +: list)
+        getPath(getPrev(node), node +: list)
     }
 
     getPath(stop)
+  }
+
+  def getPrev(i: Int): Int = {
+    prev(graph(i + 1))
+  }
+
+  def setPrev(i: Int, value: Int): Unit = {
+    prev(graph(i + 1)) = value
   }
 }
 
