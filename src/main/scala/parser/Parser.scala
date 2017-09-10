@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import io.Source
 import cats._
+import cats.data.ReaderT
 import implicits._
 import cats.effect._
 import cats.effect.IO
@@ -155,13 +156,15 @@ object Parser {
     in => in
     .filter(_.isRight)
     .map { case Right(redirect) => redirect.toString }
-    .to(writeToFile(path))
+      .to(writeToFile(path))
 
-  def run(config: Config): IO[Unit] = for {
-    _ <- getLinks(config.wikipediaDump)
-      .observe(handlePage(config.pages, config.titles))
-      .observe(writeRedirect(config.redirects))
-      .run
-  } yield ()
+  val run: ReaderT[IO, Config, Unit] = ReaderT { config =>
+    for {
+      _ <- getLinks(config.wikipediaDump)
+        .observe(handlePage(config.pages, config.titles))
+        .observe(writeRedirect(config.redirects))
+        .run
+    } yield ()
+  }
 }
 

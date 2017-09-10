@@ -2,6 +2,7 @@ package parser
 
 import java.nio.file.Paths
 
+import cats.data.ReaderT
 import cats.effect.IO
 import fs2.io.file.{readAll, writeAll}
 import fs2.{Stream, text}
@@ -57,7 +58,7 @@ class PageUpdater(config: Config) {
 }
 
 object PageUpdater {
-  val run: (Config) => IO[Unit] =
-    config =>
-      new PageUpdater(config).updatePages()
+  val run: ReaderT[IO,Config,Unit] = ReaderT { config =>
+    new PageUpdater(config).updatePages()
+  }
 }

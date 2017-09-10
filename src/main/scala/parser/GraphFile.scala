@@ -3,7 +3,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.sql.{Connection, ResultSet}
 
-import cats.data.Reader
+import cats.data.{Reader, ReaderT}
 import cats.effect.{IO, Sync}
 import db.DB._
 import fs2.{Chunk, Pipe, Sink, Stream, text}
@@ -56,8 +56,7 @@ class GraphFile(config: Config) {
 }
 
 object GraphFile {
-  val run: (Config) => IO[Unit] = {
-    config =>
+  val run: ReaderT[IO,Config,Unit] = ReaderT { config =>
       val graphFile = new GraphFile(config)
       graphFile.run
   }

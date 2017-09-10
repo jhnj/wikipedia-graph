@@ -1,7 +1,8 @@
 package runner
 
-import cats.implicits._
+import cats.data.{Kleisli, Reader, ReaderT}
 import cats.effect.IO
+import cats.implicits._
 import parser._
 
 object Runner {
@@ -14,23 +15,22 @@ object Runner {
       help
     else
       for {
-        config <- Config.config
         tasks <- args.toList
           .map(task => {
-            logRun(task, getTask(task)(config))
+            logRun(task, getTask(task))
           })
           .sequence
       } yield tasks
   }
 
-  def getTask(task: String): Config => IO[Unit] = task match {
+  def getTask(task: String): ReaderT[IO,Config,Unit] = task match {
     case "pipeline" =>
-      config => for {
-        _ <- Parser.run(config)
-        _ <- Redirects.run(config)
-        _ <- PageUpdater.run(config)
-        _ <- SQLIndex.run(config)
-        _ <- GraphFile.run(config)
+      for {
+        _ <- Parser.run
+        _ <- Redirects.run
+        _ <- PageUpdater.run
+        _ <- SQLIndex.run
+        _ <- GraphFile.run
       } yield ()
 
     case "parse" =>
@@ -48,9 +48,7 @@ object Runner {
     case "graphfile" =>
       GraphFile.run
 
-    case _ =>
-      _ => IO.unit
-
+    case _ => Kleisli.pure(())
   }
 
   val help: IO[Unit] = IO {
@@ -58,12 +56,13 @@ object Runner {
     println("pipeline, parse, redirects, updatepages, sqlindex, graphfile")
   }
 
-  def logRun[A](taskName: String, task: IO[A]): IO[A] = {
+  def logRun[A](taskName: String, task: ReaderT[IO,Config,A]): IO[A] = {
     for {
       startTime <- IO {
         println(s"starting task: $taskName"); System.currentTimeMillis()
       }
-      res <- task
+      config <- Config.config
+      res <- task(config)
       _ <- IO {
         println(s"done task $taskName in ${(System.currentTimeMillis() - startTime) / 1000}s")
       }

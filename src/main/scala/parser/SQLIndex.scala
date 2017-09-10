@@ -2,7 +2,7 @@ package parser
 
 import java.nio.file.Paths
 
-import cats.data.Reader
+import cats.data.{Reader, ReaderT}
 import cats.effect.IO
 import fs2.io.file.readAll
 import fs2.{Pipe, Stream, text}
@@ -48,8 +48,7 @@ class SQLIndex(config: Config) {
 object SQLIndex {
   case class TitleAndLength(title: String, length: Int)
 
-  val run: (Config) => IO[Unit] = {
-    config =>
+  val run: ReaderT[IO,Config,Unit] = ReaderT { config =>
       val sqlIndex = new SQLIndex(config)
       sqlIndex.run
   }

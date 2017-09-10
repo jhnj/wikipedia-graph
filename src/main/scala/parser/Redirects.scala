@@ -3,6 +3,7 @@ package parser
 import java.io
 import java.nio.file.Paths
 
+import cats.data.ReaderT
 import cats.effect.IO
 import fs2.io.file._
 import fs2._
@@ -42,8 +43,7 @@ class Redirects(config: Config) {
 }
 
 object Redirects {
-  val run: (Config) => IO[Unit] = {
-    config =>
+  val run: ReaderT[IO,Config,Unit] = ReaderT { config =>
       val redirects = new Redirects(config)
       redirects.run
   }
