@@ -3,6 +3,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.sql.{Connection, ResultSet}
 
+import cats.data.Reader
 import cats.effect.{IO, Sync}
 import db.DB._
 import fs2.{Chunk, Pipe, Sink, Stream, text}
@@ -18,20 +19,19 @@ class GraphFile(config: Config) {
     } .map(arr => TitleAndLinks(arr(0), arr.tail.toList))
   }
 
-  def createGraph: (Connection) => Stream[IO, Unit] = {
-    connection: Connection =>
-      readAll[IO](Paths.get(config.pagesWithRedirects), 4096)
-        .through(text.utf8Decode)
-        .through(text.lines)
-        .through(parsePage)
-        .through(toBin(connection))
-        .flatMap { s =>
-          val buffer = ByteBuffer.allocate(4)
-          buffer.putInt(s)
-          Stream.chunk(Chunk.bytes(buffer.array))
-        }
-        .to(fs2.io.file.writeAll(Paths.get(config.graph)))
-        .through(log)
+  def createGraph: Work[IO, Unit] = Reader { connection =>
+    readAll[IO](Paths.get(config.pagesWithRedirects), 4096)
+      .through(text.utf8Decode)
+      .through(text.lines)
+      .through(parsePage)
+      .through(toBin(connection))
+      .flatMap { s =>
+        val buffer = ByteBuffer.allocate(4)
+        buffer.putInt(s)
+        Stream.chunk(Chunk.bytes(buffer.array))
+      }
+      .to(fs2.io.file.writeAll(Paths.get(config.graph)))
+      .through(log)
   }
 
   def toBin(connection: Connection): Pipe[IO,TitleAndLinks,Int] =

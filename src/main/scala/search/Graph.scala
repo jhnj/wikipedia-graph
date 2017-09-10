@@ -1,6 +1,9 @@
 package search
 
+import cats.effect.IO
+
 import scala.collection.mutable
+import scala.io.StdIn.readLine
 
 class Graph(graph: Vector[Int], size: Int) {
   def links(offset: Int): Vector[Int] = {
@@ -40,5 +43,15 @@ class Graph(graph: Vector[Int], size: Int) {
 
     getPath(stop)
   }
-
 }
+
+//object Graph {
+//  def getTitle = IO { readLine("Enter start article") }
+//
+//
+//  for {
+//    start <- getTitle
+//    stop <- getTitle
+//  }
+//
+//}

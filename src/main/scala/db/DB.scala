@@ -2,17 +2,21 @@ package db
 
 import java.sql.{Connection, DriverManager, ResultSet}
 
+import cats.Id
+import cats.data.{Reader, ReaderT}
 import cats.effect.{IO, Sync}
 import cats.implicits._
 import fs2.{Pipe, Sink, Stream}
 import runner.Config
 
 object DB {
-  def useDb[O](use: Connection => Stream[IO, O])(implicit config: Config): Stream[IO, O] = {
+  type Work[F[_],O] = Reader[Connection,Stream[F,O]]
+
+  def useDb[O](work: Work[IO, O])(implicit config: Config): Stream[IO, O] = {
     Stream.bracket(IO {
       Class.forName("org.sqlite.JDBC")
       DriverManager.getConnection(s"jdbc:sqlite:${config.database}")
-    })(use, conn => IO { conn.close() })
+    })(work.apply, conn => IO { conn.close() })
   }
 
   def executeUpdate[I](query: I => String)(conn: Connection): Pipe[IO, I, Unit] = {
