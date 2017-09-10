@@ -32,10 +32,10 @@ object Parser {
     })
 
   case class Page(title: String, links: Set[String] = Set[String]()) {
-    override def toString: String = s"${title.toLowerCase}|${links.map(_.toLowerCase).mkString("|")}"
+    override def toString: String = s"$title|${links.mkString("|")}"
   }
   case class Redirect(from: String, to: String) {
-    override def toString: String = s"${from.toLowerCase}|${to.toLowerCase}"
+    override def toString: String = s"$from|$to"
   }
 
   type PageOrRedirect = Either[Page, Redirect]
@@ -45,7 +45,10 @@ object Parser {
                    links: Set[String] = Set(),
                    isRedirect: Boolean = false,
                    inTitle: Boolean = false,
-                   inText: Boolean = false)
+                   inText: Boolean = false) {
+    def addToTitle(toAdd: String): State =
+      copy(title = Some(title.getOrElse("") + toAdd))
+  }
 
   def xmlHandler[F[_]]: Pipe[F, XMLEvent, PageOrRedirect] = {
     def go(s: Stream[F, XMLEvent], state: State): Pull[F, PageOrRedirect, Unit] = {
@@ -93,9 +96,16 @@ object Parser {
 
             case EvText(value: String) =>
               if (state.inTitle) {
-                go(tail, state.copy(title = Some(value)))
+                go(tail, state.addToTitle(value))
               } else if (state.inText) {
                 go(tail, state.copy(links = LinkParser.getLinks(value)))
+              } else {
+                go(tail, state)
+              }
+
+            case EvEntityRef("amp") =>
+              if (state.inTitle) {
+                go(tail, state.addToTitle("&"))
               } else {
                 go(tail, state)
               }
@@ -133,7 +143,7 @@ object Parser {
       .to(writeToFile(pagePath))
 
   def writeTitle(path: String): Sink[IO,Page] =
-    in => in.map(_.title.toLowerCase).to(writeToFile(path))
+    in => in.map(_.title).to(writeToFile(path))
 
   def wantedPage(title: String): Boolean =
     !(title.startsWith("File:") ||
