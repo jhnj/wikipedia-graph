@@ -10,9 +10,9 @@ Requirements to run:
   - `sqlite3`
   - XML dump of all wikipedia articles `simplewiki-latest-pages-articles.xml.bz2` which can be downloaded from <https://dumps.wikimedia.org/simplewiki/latest/>
 
-Unzip the XML file and move it to the data folder in the project. Then open the sbt console by running `sbt`. To process the dump and go through all intermediate stages run `run pipeline`. Currently there are multiple main methods in the project so select `runner.Runner`. On my laptop this process takes about 6 minutes for the Simple English wikipedia dump.
+Unzip the XML file and move it to the data folder in the project. Then open the sbt console by running `sbt`. To process the dump and go through all intermediate stages run `run pipeline`. On my laptop this process takes about 6 minutes for the Simple English wikipedia dump.
 
-To then find the shortest path between two articles type `run` in the sbt console and select `search.Graph`. You will then be prompted for two article titles, if both articles exist the shortest path between them will be printed.
+To then find the shortest path between two articles type `run search` in the sbt console. You will then be prompted for two article titles, if both articles exist the shortest path between them will be printed.
 
 ## Files
 The final files used in the search are: `graph.bin` and `index.db`  
@@ -25,4 +25,13 @@ A binary file where all the articles and their outbound links exist in the follo
 Where all fields are 32bit integers
 
 #### index.db
-A sqlite3 database containing one table `pages`with the titles of all articles and their offsets in `graph.bin`
+A sqlite3 database containing one table `pages` with the titles of all articles and their offsets in `graph.bin`
+
+## ToDo
+ - Read xml from StdIn to be able to pipe the file directly from `bzip2` to the parser as the real wiki dump is rather big uncompressed
+ - Test performance and process real wiki dump (AWS?)
+ - Improvements to searching
+   * Currently crashes if article not found
+   * Currently case sensitive (add nocase index to db?)
+   * Non cli, maybe telegram bot?
+

@@ -61,7 +61,7 @@ object Runner {
 
   val help: IO[Unit] = IO {
     println("Usage:  'sbt run [commands]' where '[commands] is any of the following separated by spaces:")
-    println("pipeline, parse, redirects, updatepages, sqlindex, graphfile")
+    println("pipeline, parse, redirects, updatepages, sqlindex, graphfile, inspect, search")
   }
 
   def runTask[A](taskName: String, task: ReaderT[IO,Config,A]): IO[A] = {
