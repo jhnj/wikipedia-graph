@@ -63,10 +63,10 @@ class Graph(graph: Vector[Int], size: Int) {
 }
 
 object Graph {
-  def getTitleOffset: ReaderT[IO, Config, Int] = ReaderT { config =>
+  def getTitleOffset(question: String): ReaderT[IO, Config, Int] = ReaderT { config =>
     for {
       title <- IO {
-        readLine("Enter article: ")
+        readLine(question)
       }
       offset <- getOffset(title)(config)
     } yield offset.head
@@ -84,18 +84,24 @@ object Graph {
     })(config).runLog.map(_.headOption)
   }
 
-  def main(args: Array[String]): Unit = {
-    (for {
-      config <- Config.config
-      start <- getTitleOffset.run(config)
-      stop <- getTitleOffset.run(config)
+  def printResult(res: Option[List[String]]): IO[Unit] = IO {
+    val toPrint = res
+      .map(path => s"Shortest path: ${path.mkString(" -> ")}")
+      .getOrElse("Path not found")
+    println(toPrint)
+  }
+
+  val run: ReaderT[IO,Config,Unit] = ReaderT { config =>
+    for {
+      start <- getTitleOffset("Enter start title: ").run(config)
+      stop <- getTitleOffset("Enter end title: ").run(config)
       graphVec <- Inspect.graphStream(config).runLog
       path <- IO {
         val graph = new Graph(graphVec, graphVec.size)
         graph.bfs(start, stop)
       }
       seq <- path.map(getTitle(_)(config)).sequence
-      _ <- IO { println(seq.sequence) }
-    } yield ()).unsafeRunSync()
+      _ <- printResult(seq.sequence)
+    } yield ()
   }
 }

@@ -5,6 +5,7 @@ import cats.effect.IO
 import cats.implicits._
 import parser._
 import inspect._
+import search.Graph
 
 object Runner {
   def main(args: Array[String]): Unit = {
@@ -52,6 +53,8 @@ object Runner {
     case "inspect" =>
       Inspect.run
 
+    case "search" =>
+      Graph.run
 
     case _ => ReaderT { _ => help}
   }
