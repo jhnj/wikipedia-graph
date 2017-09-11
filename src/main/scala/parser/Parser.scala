@@ -41,14 +41,17 @@ object Parser {
 
   type PageOrRedirect = Either[Page, Redirect]
 
-  case class State(title: Option[String] = None,
+  case class State(title: String = "",
                    redirect: Option[String] = None,
-                   links: Set[String] = Set(),
+                   text: String = "",
                    isRedirect: Boolean = false,
                    inTitle: Boolean = false,
                    inText: Boolean = false) {
     def addToTitle(toAdd: String): State =
-      copy(title = Some(title.getOrElse("") + toAdd))
+      copy(title = title + toAdd)
+
+    def addToText(toAdd: String): State =
+      copy(text = text + toAdd)
   }
 
   def xmlHandler[F[_]]: Pipe[F, XMLEvent, PageOrRedirect] = {
@@ -60,8 +63,8 @@ object Parser {
               label match {
                 case "page" =>
                   go(tail, state.copy(
-                    title = None,
-                    links = Set(),
+                    title = "",
+                    text = "",
                     isRedirect = false
                   ))
 
@@ -82,10 +85,12 @@ object Parser {
             case EvElemEnd(_, label) =>
               label match {
                 case "text" =>
-                  if (state.isRedirect && state.title.isDefined && state.redirect.isDefined)
-                    Pull.output1(Right(Redirect(state.title.get, state.redirect.get))) >> go(tail, state.copy(inText = false))
-                  else if (state.title.isDefined)
-                    Pull.output1(Left(Page(state.title.get, state.links))) >> go(tail, state)
+                  if (state.isRedirect && state.title.length > 0 && state.redirect.isDefined)
+                    outputRedirect(state.title, state.redirect.get) >>
+                      go(tail, state.copy(inText = false))
+                  else if (state.title.length > 0)
+                    outputPage(state.title, state.text) >>
+                      go(tail, state)
                   else
                     go(tail, state)
 
@@ -99,7 +104,7 @@ object Parser {
               if (state.inTitle) {
                 go(tail, state.addToTitle(value))
               } else if (state.inText) {
-                go(tail, state.copy(links = LinkParser.getLinks(value)))
+                go(tail, state.addToText(value))
               } else {
                 go(tail, state)
               }
@@ -107,6 +112,8 @@ object Parser {
             case EvEntityRef("amp") =>
               if (state.inTitle) {
                 go(tail, state.addToTitle("&"))
+              } else if (state.inText) {
+                go(tail, state.addToText("&"))
               } else {
                 go(tail, state)
               }
@@ -120,6 +127,14 @@ object Parser {
 
     in => go(in, State()).stream
   }
+
+  def outputRedirect(from: String, to: String): Pull[Nothing, Either[Page, Redirect], Unit] =
+    Pull.output1(
+      Right(Redirect(from, to)))
+
+  def outputPage(title: String, text: String): Pull[Nothing, Either[Page, Redirect], Unit] =
+    Pull.output1(
+      Left(Page(title, LinkParser.getLinks(text))))
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -137,14 +152,11 @@ object Parser {
   def handlePage(pagePath: String, titlePath: String): Sink[IO, PageOrRedirect] =
     in => in
       .filter(_.isLeft)
-      .map { case Left(page) => page }
+      .collect { case Left(page) => page }
       .filter(page => wantedPage(page.title))
       .observe(writeTitle(titlePath))
       .map(_.toString)
       .to(writeToFile(pagePath))
-
-  def writeTitle(path: String): Sink[IO,Page] =
-    in => in.map(_.title).to(writeToFile(path))
 
   def wantedPage(title: String): Boolean =
     !(title.startsWith("File:") ||
@@ -152,10 +164,15 @@ object Parser {
       title.startsWith("Help:") ||
       title.startsWith("Draft:"))
 
-  def writeRedirect(path: String): Sink[IO,PageOrRedirect] =
+  def writeTitle(path: String): Sink[IO,Page] =
     in => in
-    .filter(_.isRight)
-    .map { case Right(redirect) => redirect.toString }
+      .map(_.title)
+      .to(writeToFile(path))
+
+  def writeRedirect(path: String): Sink[IO, PageOrRedirect] =
+    in => in
+      .filter(_.isRight)
+      .collect { case Right(redirect) => redirect.toString }
       .to(writeToFile(path))
 
   val run: ReaderT[IO, Config, Unit] = ReaderT { config =>

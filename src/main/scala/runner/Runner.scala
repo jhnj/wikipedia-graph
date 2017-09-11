@@ -15,12 +15,12 @@ object Runner {
       help
     else
       for {
-        tasks <- args.toList
+        _ <- args.toList
           .map(task => {
-            logRun(task, getTask(task))
+            runTask(task, getTask(task))
           })
           .sequence
-      } yield tasks
+      } yield ()
   }
 
   def getTask(task: String): ReaderT[IO,Config,Unit] = task match {
@@ -48,15 +48,15 @@ object Runner {
     case "graphfile" =>
       GraphFile.run
 
-    case _ => Kleisli.pure(())
+    case _ => ReaderT { _ => help}
   }
 
   val help: IO[Unit] = IO {
-    println("Usage 'sbt run [commands]' where '[commands] is any of the following separated by spaces:")
+    println("Usage:  'sbt run [commands]' where '[commands] is any of the following separated by spaces:")
     println("pipeline, parse, redirects, updatepages, sqlindex, graphfile")
   }
 
-  def logRun[A](taskName: String, task: ReaderT[IO,Config,A]): IO[A] = {
+  def runTask[A](taskName: String, task: ReaderT[IO,Config,A]): IO[A] = {
     for {
       startTime <- IO {
         println(s"starting task: $taskName"); System.currentTimeMillis()
