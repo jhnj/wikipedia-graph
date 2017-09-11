@@ -1,9 +1,10 @@
 package runner
 
-import cats.data.{Kleisli, Reader, ReaderT}
+import cats.data.ReaderT
 import cats.effect.IO
 import cats.implicits._
 import parser._
+import inspect._
 
 object Runner {
   def main(args: Array[String]): Unit = {
@@ -47,6 +48,10 @@ object Runner {
 
     case "graphfile" =>
       GraphFile.run
+
+    case "inspect" =>
+      Inspect.run
+
 
     case _ => ReaderT { _ => help}
   }

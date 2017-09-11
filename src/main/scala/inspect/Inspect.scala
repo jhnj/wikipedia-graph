@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.sql.Connection
 
-import cats.data.Reader
+import cats.data.{Reader, ReaderT}
 import cats.effect.IO
 import db.DB
 import db.DB.Work
@@ -14,9 +14,9 @@ import fs2.io.file.readAll
 
 class Inspect(config: Config) {
 
-  def inspect(title: String): Stream[IO, Unit] = DB.useDb(findOffset(title))(config)
+  def inspect(title: String): Stream[IO, Int] = DB.useDb(findOffset(title))(config)
 
-  def findOffset(title: String): Work[IO,Unit] =
+  def findOffset(title: String): Work[IO,Int] =
     Reader { connection: Connection =>
       Stream(title).covary[IO]
         .through(DB.getOffset(connection))
@@ -27,22 +27,21 @@ class Inspect(config: Config) {
 }
 
 object Inspect {
-  def main(args: Array[String]): Unit = {
-    (for {
-      config <- Config.config
+  val run: ReaderT[IO,Config,Unit] = ReaderT { config =>
+    for {
+      title <- IO { scala.io.StdIn.readLine("Enter title to inspect: ") }
       l <- {
         val a = new Inspect(config)
-        a.inspect("August").runLog
+        a.inspect(title).runLog
       }
-      _ <- IO { println("len: " + l.length) }
-    } yield ()).unsafeRunSync()
+      _ <- IO { println(s"$title:\n$l\nlength: ${l.length}") }
+    } yield ()
   }
 
-  def inspectLinks(offset: Int, config: Config): Stream[IO, Unit] = {
+  def inspectLinks(offset: Int, config: Config): Stream[IO, Int] = {
     graphStream(config)
       .drop(offset)
       .through(takeLinks)
-      .map(i => println(i))
   }
 
   def graphStream(config: Config): Stream[IO, Int] =
