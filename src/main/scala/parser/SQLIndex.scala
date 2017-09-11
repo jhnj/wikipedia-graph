@@ -21,7 +21,6 @@ class SQLIndex(config: Config) {
         .through(parsePage)
         .through(accumulateOffset)
         .to(insertOffset(connection))
-        .through(log)
   }
 
   val accumulateOffset: Pipe[IO, TitleAndLength, (TitleAndLength, Long)] =
@@ -31,14 +30,6 @@ class SQLIndex(config: Config) {
 
   val parsePage: Pipe[IO,String,TitleAndLength] = {
     in => in.map(line => line.split('|')).map(arr => TitleAndLength(arr(0), arr.length))
-  }
-
-  def log[A,B]: Pipe[IO, A, A] = {
-    in => in.zipWithIndex.map(tuple => {
-      if (tuple._2 % 1000 == 0)
-        print(".")
-      tuple._1
-    })
   }
 
   val run: IO[Unit] = useDb(allTitles).run
