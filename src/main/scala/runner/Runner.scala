@@ -28,7 +28,7 @@ object Runner {
   def getTask(task: String): ReaderT[IO,Config,Unit] = task match {
     case "pipeline" =>
       for {
-        _ <- Parser.run
+        _ <- Parser.run(compressed = true)
         _ <- Redirects.run
         _ <- PageUpdater.run
         _ <- SQLIndex.run
@@ -36,7 +36,10 @@ object Runner {
       } yield ()
 
     case "parse" =>
-      Parser.run
+      Parser.run(compressed = false)
+
+    case "parse-compressed" =>
+      Parser.run(compressed = true)
 
     case "redirects" =>
       Redirects.run

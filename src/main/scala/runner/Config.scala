@@ -4,6 +4,7 @@ import cats.effect.IO
 import pureconfig._
 
 case class Config(wikipediaDump: String,
+                  compressedWikipediaDump: String,
                   pages: String,
                   redirects: String,
                   titles: String,

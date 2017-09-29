@@ -31,10 +31,9 @@ object XmlStream {
         .map(opt => opt.map((_, e)))
     }
 
-  def staxFromFile(file: String,
-                   fileIsCompressed: Boolean = false): Stream[IO, XMLEvent] =
+  def staxFromFile(file: String): Stream[IO, XMLEvent] =
     Stream.bracket(IO {
-      if (fileIsCompressed)
+      if (isCompressed(file))
         getSourceForCompressed(file)
       else
         Source.fromFile(file)
@@ -44,4 +43,7 @@ object XmlStream {
     }, source => IO {
       source.close()
     })
+
+  def isCompressed(file: String): Boolean =
+    file.takeRight(3) == "bz2"
 }

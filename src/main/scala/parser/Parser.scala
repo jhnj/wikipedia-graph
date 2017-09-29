@@ -120,8 +120,7 @@ object Parser {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  def getLinks: (String) => Stream[IO, PageOrRedirect] =
-    (path: String) =>
+  def getLinks(path: String): Stream[IO, PageOrRedirect] =
       XmlStream.staxFromFile(path)
         .through(xmlHandler)
 
@@ -157,9 +156,13 @@ object Parser {
       .collect { case Right(redirect) => redirect.toString }
       .to(writeToFile(path))
 
-  val run: ReaderT[IO, Config, Unit] = ReaderT { config =>
+  def run(compressed: Boolean): ReaderT[IO, Config, Unit] = ReaderT { config =>
+    val path =
+      if(compressed) config.compressedWikipediaDump
+      else config.wikipediaDump
+
     for {
-      _ <- getLinks(config.wikipediaDump)
+      _ <- getLinks(path)
         .observe(handlePage(config.pages, config.titles))
         .observe(writeRedirect(config.redirects))
         .run
