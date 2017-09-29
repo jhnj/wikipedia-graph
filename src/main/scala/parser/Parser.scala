@@ -14,24 +14,6 @@ import runner.Config
 import scala.xml.pull._
 
 object Parser {
-  def stax[F[_]](e: XMLEventReader)(implicit F: Sync[F]): Stream[F, XMLEvent] =
-    Stream.unfoldEval(e) { e: XMLEventReader =>
-      F.delay(e.hasNext)
-        .ifM(ifTrue = F.delay(Option(e.next)),
-          ifFalse = F.pure(Option.empty[XMLEvent]))
-        .map(opt => opt.map((_, e)))
-    }
-
-  def staxFromFile(file: String): Stream[IO, XMLEvent] =
-    Stream.bracket(IO {
-      Source.fromFile(file)
-    })(source => {
-      val e = new XMLEventReader(source)
-      stax(e)(Sync[IO])
-    }, source => IO {
-      source.close()
-    })
-
   case class Page(title: String, links: Set[String] = Set[String]()) {
     override def toString: String = s"$title|${links.mkString("|")}"
   }
@@ -140,7 +122,7 @@ object Parser {
 
   def getLinks: (String) => Stream[IO, PageOrRedirect] =
     (path: String) =>
-      staxFromFile(path)
+      XmlStream.staxFromFile(path)
         .through(xmlHandler)
 
   def writeToFile(path: String): Sink[IO, String] =
