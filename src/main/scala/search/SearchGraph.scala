@@ -14,7 +14,7 @@ import cats.implicits._
 import scala.collection.mutable
 import scala.io.StdIn.readLine
 
-class Graph(graph: Vector[Int], size: Int) {
+class SearchGraph(graph: Vector[Int], size: Int) {
   val prev: Array[Int] = Array.fill(size)(-1)
 
   def links(offset: Int): Vector[Int] = {
@@ -62,7 +62,7 @@ class Graph(graph: Vector[Int], size: Int) {
   }
 }
 
-object Graph {
+object SearchGraph {
   def getTitleOffset(question: String): ReaderT[IO, Config, Int] = ReaderT { config =>
     for {
       title <- IO {
@@ -97,7 +97,7 @@ object Graph {
       stop <- getTitleOffset("Enter end title: ").run(config)
       graphVec <- Inspect.graphStream(config).runLog
       path <- IO {
-        val graph = new Graph(graphVec, graphVec.size)
+        val graph = new SearchGraph(graphVec, graphVec.size)
         graph.bfs(start, stop)
       }
       seq <- path.map(getTitle(_)(config)).sequence
