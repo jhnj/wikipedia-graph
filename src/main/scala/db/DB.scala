@@ -30,17 +30,22 @@ object DB {
     })
   }
 
-  def executeQuery[I,O,F[_]](query: I => String, getValues: ResultSet => O)(conn: Connection)(implicit F: Sync[F]): Pipe[F, I, O] = {
-    (in: Stream[F,I]) => in.flatMap(i => {
+  def executeQuery[I,O](query: I => String, getValues: ResultSet => O)(conn: Connection)(implicit F: Sync[IO]): Pipe[IO, I, O] = {
+    (in: Stream[IO,I]) => in.flatMap(i => {
       try {
-        val stm = conn.createStatement()
-        val rs = stm.executeQuery(query(i))
-        Stream.unfoldEval(rs)(r => {
-          F.delay(rs.next())
-            .ifM(ifTrue = F.delay(Option(getValues(rs))),
-              ifFalse = F.pure(Option.empty[O]))
-            .map(opt => opt.map((_, rs)))
-        })
+        Stream.bracket(IO {
+          val stm = conn.createStatement()
+          val rs = stm.executeQuery(query(i))
+          stm.close()
+          rs
+        })(rs => {
+          Stream.unfoldEval(rs)(r => {
+            F.delay(rs.next())
+              .ifM(ifTrue = F.delay(Option(getValues(rs))),
+                ifFalse = F.pure(Option.empty[O]))
+              .map(opt => opt.map((_, rs)))
+          })
+        }, rs => IO {  rs.close() })
       } catch {
         case _: Exception =>
           Stream.empty.covaryOutput[O]

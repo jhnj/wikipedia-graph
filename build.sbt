@@ -16,3 +16,7 @@ libraryDependencies ++= Seq(
 
   "org.scalatest" % "scalatest_2.12" % "3.0.4" % "test"
 )
+
+// set main class and skip tests for assembly
+test in assembly := {}
+mainClass in assembly := Some("runner.Runner")
