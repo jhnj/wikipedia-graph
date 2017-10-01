@@ -36,16 +36,19 @@ object DB {
         Stream.bracket(IO {
           val stm = conn.createStatement()
           val rs = stm.executeQuery(query(i))
-          stm.close()
-          rs
-        })(rs => {
+          (rs, stm)
+        })(tuple => {
+          val rs = tuple._1
           Stream.unfoldEval(rs)(r => {
             F.delay(rs.next())
               .ifM(ifTrue = F.delay(Option(getValues(rs))),
                 ifFalse = F.pure(Option.empty[O]))
               .map(opt => opt.map((_, rs)))
           })
-        }, rs => IO {  rs.close() })
+        }, tuple => IO {
+          tuple._1.close()
+          tuple._2.close()
+        })
       } catch {
         case _: Exception =>
           Stream.empty.covaryOutput[O]
