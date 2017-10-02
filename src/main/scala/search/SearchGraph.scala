@@ -68,7 +68,7 @@ object SearchGraph {
       title <- IO {
         readLine(question)
       }
-      offset <- getOffset(title)(config)
+      offset <- getOffset(title.toLowerCase)(config)
     } yield offset.head
   }
 

@@ -30,7 +30,7 @@ object Parser {
                    inTitle: Boolean = false,
                    inText: Boolean = false) {
     def addToTitle(toAdd: String): State =
-      copy(title = title + toAdd)
+      copy(title = title + toAdd.toLowerCase)
 
     def addToText(toAdd: String): State =
       copy(text = text + toAdd)
